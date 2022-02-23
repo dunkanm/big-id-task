@@ -16,43 +16,38 @@ import java.util.concurrent.*;
 public class Controller {
 
     private static final int CONSUMER_THREAD_POOL_SIZE = 5;
+    public static final int PRODUCER_THREAD = 1;
+    public static final int AGGREGATOR_THREAD = 1;
 
     private final Broker broker;
 
     public Controller() {
         BlockingQueue<Occurrence> outputQueue = new LinkedBlockingQueue<>();
         BlockingQueue<TextChunk> workQueue = new LinkedBlockingQueue<>(CONSUMER_THREAD_POOL_SIZE * 2);
-        broker = new Broker(workQueue, outputQueue);
+        broker = new Broker(workQueue, outputQueue, CONSUMER_THREAD_POOL_SIZE);
     }
 
     /**
      * Finds all occurrences of search terms in a file
-     *
-     * @param file file to search in
+     *  @param file file to search in
      * @param searchTerms list of comma separated patterns
+     * @return
      */
-    public void startSearch(File file, String searchTerms) {
+    public Map<String, List<Occurrence.Coordinates>> startSearch(File file, String searchTerms) throws ExecutionException, InterruptedException {
 
-        ExecutorService supplierExecutorService = Executors.newSingleThreadExecutor();
-        supplierExecutorService.execute(new TextChunkProducer(file, broker));
-        supplierExecutorService.shutdown();
-
-        ExecutorService matchersExecutorService = Executors.newFixedThreadPool(CONSUMER_THREAD_POOL_SIZE);
         TextChunkProcessor chunkProcessor = new RegexTextChunkProcessor(searchTerms);
+        ExecutorService controllerThreadExecutor = Executors.newFixedThreadPool(CONSUMER_THREAD_POOL_SIZE + PRODUCER_THREAD + AGGREGATOR_THREAD);
+
+        controllerThreadExecutor.submit(new TextChunkProducer(file, broker));
+
         for (int i = 0; i < CONSUMER_THREAD_POOL_SIZE; i++) {
-            matchersExecutorService.execute(new TextChunkConsumer(chunkProcessor, broker));
+            controllerThreadExecutor.submit(new TextChunkConsumer(chunkProcessor, broker));
         }
-        matchersExecutorService.shutdown();
 
-        ExecutorService aggregatorExecutorService = Executors.newSingleThreadExecutor();
-        Future<Map<String, List<Occurrence.Coordinates>>> aggregateFuture = aggregatorExecutorService.submit(new Aggregator(broker));
-        aggregatorExecutorService.shutdown();
+        Future<Map<String, List<Occurrence.Coordinates>>> aggregateFuture = controllerThreadExecutor.submit(new Aggregator(broker));
+        controllerThreadExecutor.shutdown();
 
-        try {
-            Map<String, List<Occurrence.Coordinates>> result = aggregateFuture.get();
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
+        return aggregateFuture.get();
     }
 
 }

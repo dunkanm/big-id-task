@@ -22,6 +22,7 @@ public class Aggregator implements Callable<Map<String, List<Occurrence.Coordina
         Map<String, List<Occurrence.Coordinates>> aggregatedResult = new HashMap<>();
         Occurrence nextOccurrence;
         while ((nextOccurrence = broker.getOutputItem()) != null) {
+            System.out.println("Got item");
             String pattern = nextOccurrence.getPattern();
             if (!aggregatedResult.containsKey(pattern)) {
                 aggregatedResult.put(nextOccurrence.getPattern(), new ArrayList<>());

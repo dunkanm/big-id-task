@@ -26,6 +26,7 @@ public class TextChunkConsumer implements Runnable {
                 System.out.println("Chunk processed: " + nextChunk.getLineOffset());
             }
         }
+        broker.notifyWorkerFinished();
     }
 
 }

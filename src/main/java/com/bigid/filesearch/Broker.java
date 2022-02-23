@@ -6,18 +6,21 @@ import com.bigid.filesearch.producer.TextChunk;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Broker {
 
     private final BlockingQueue<TextChunk> workQueue;
     private final BlockingQueue<Occurrence> outputQueue;
-    private final AtomicReference<Boolean> isFileFinished;
+    private final AtomicInteger workerThreads;
+    private boolean isFileFinished;
 
-    public Broker(BlockingQueue<TextChunk> workQueue, BlockingQueue<Occurrence> outputQueue) {
+
+    public Broker(BlockingQueue<TextChunk> workQueue, BlockingQueue<Occurrence> outputQueue, int consumerThreadPoolSize) {
         this.workQueue = workQueue;
         this.outputQueue = outputQueue;
-        this.isFileFinished = new AtomicReference<>(false);
+        this.isFileFinished = false;
+        this.workerThreads = new AtomicInteger(consumerThreadPoolSize);
     }
 
     public void submitWork(TextChunk chunk) {
@@ -52,25 +55,33 @@ public class Broker {
 
     public Occurrence getOutputItem() {
         try {
-            while(!isFileFinished() || !outputQueue.isEmpty() || !workQueue.isEmpty()) {
+            while(workInProgress() || !outputQueue.isEmpty()) {
                 Occurrence occurrence = outputQueue.poll(100, TimeUnit.MILLISECONDS);
                 if (occurrence == null) {
                     continue;
                 }
                 return occurrence;
             }
-            return outputQueue.poll(200, TimeUnit.MILLISECONDS);
+            return outputQueue.poll(100, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return null;
     }
 
+    public void notifyWorkerFinished() {
+        workerThreads.decrementAndGet();
+    }
+
+    public boolean workInProgress() {
+        return workerThreads.get() > 0;
+    }
+
     public boolean isFileFinished() {
-        return isFileFinished.get();
+        return isFileFinished;
     }
 
     public void setFileFinished() {
-        isFileFinished.set(true);
+        isFileFinished = true;
     }
 }
