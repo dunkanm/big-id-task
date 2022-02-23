@@ -23,7 +23,6 @@ public class TextChunkConsumer implements Runnable {
             if (nextChunk != null) {
                 List<Occurrence> occurrences = processor.processTextChunk(nextChunk);
                 broker.submitResult(occurrences);
-                System.out.println("Chunk processed: " + nextChunk.getLineOffset());
             }
         }
         broker.notifyWorkerFinished();

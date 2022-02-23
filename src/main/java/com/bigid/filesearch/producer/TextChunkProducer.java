@@ -45,7 +45,6 @@ public class TextChunkProducer implements Runnable {
         if (linesRead > 0) {
             textChunk = new TextChunk(currentOffset, lines);
             currentOffset = currentOffset + linesRead;
-            System.out.println("Chunk supplied: " + textChunk);
         }
         return textChunk;
     }
