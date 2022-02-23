@@ -4,12 +4,11 @@ import com.bigid.filesearch.Broker;
 import com.bigid.filesearch.producer.TextChunk;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 
-public class TextChunkConsumer implements Callable<Void> {
+public class TextChunkConsumer implements Runnable {
 
-    private Broker broker;
-    private TextChunkProcessor processor;
+    private final Broker broker;
+    private final TextChunkProcessor processor;
 
     public TextChunkConsumer(TextChunkProcessor processor, Broker broker) {
         this.processor = processor;
@@ -17,7 +16,7 @@ public class TextChunkConsumer implements Callable<Void> {
     }
 
     @Override
-    public Void call() throws Exception {
+    public void run() {
         TextChunk nextChunk;
         while (!broker.isFileFinished() || broker.hasMoreWork()) {
             nextChunk = broker.pollForWork(100);
@@ -27,7 +26,6 @@ public class TextChunkConsumer implements Callable<Void> {
                 System.out.println("Chunk processed: " + nextChunk.getLineOffset());
             }
         }
-        return null;
     }
 
 }

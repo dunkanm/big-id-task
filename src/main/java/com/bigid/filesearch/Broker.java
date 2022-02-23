@@ -50,8 +50,20 @@ public class Broker {
         outputQueue.addAll(occurrences);
     }
 
-    public BlockingQueue<Occurrence> getOutputQueue() {
-        return outputQueue;
+    public Occurrence getOutputItem() {
+        try {
+            while(!isFileFinished() || !outputQueue.isEmpty() || !workQueue.isEmpty()) {
+                Occurrence occurrence = outputQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (occurrence == null) {
+                    continue;
+                }
+                return occurrence;
+            }
+            return outputQueue.poll(200, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public boolean isFileFinished() {

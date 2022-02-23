@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-public class TextChunkProducer implements Callable<Void> {
+public class TextChunkProducer implements Runnable {
 
     private static final int CHUNK_SIZE = 1000;
     private final File sourceFile;
@@ -20,7 +20,7 @@ public class TextChunkProducer implements Callable<Void> {
     }
 
     @Override
-    public Void call() throws Exception {
+    public void run() {
         try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
             TextChunk textChunk;
             while ((textChunk = getNextChunk(reader)) != null) {
@@ -31,7 +31,6 @@ public class TextChunkProducer implements Callable<Void> {
             System.out.println("Could not access source file.");
             e.printStackTrace();
         }
-        return null;
     }
 
     private TextChunk getNextChunk(BufferedReader reader) throws IOException {
